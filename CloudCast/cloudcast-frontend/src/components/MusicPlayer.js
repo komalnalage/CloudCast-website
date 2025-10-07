@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 
+const API_BASE_URL = "http://3.108.44.191:5000/api";
+
 export default function MusicPlayer() {
   const [tracks, setTracks] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/songs")
+    fetch(`${API_BASE_URL}/songs`)
       .then((res) => res.json())
       .then((data) => setTracks(data))
       .catch((err) => console.error(err));

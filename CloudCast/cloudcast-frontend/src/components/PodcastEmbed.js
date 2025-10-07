@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 
+const API_BASE_URL = "http://3.108.44.191:5000/api";
+
 export default function PodcastEmbed() {
   const [podcasts, setPodcasts] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/podcasts")
+    fetch(`${API_BASE_URL}/podcasts`)
       .then((res) => res.json())
       .then((data) => setPodcasts(data))
       .catch((err) => console.error(err));
