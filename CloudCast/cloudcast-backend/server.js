@@ -1,73 +1,82 @@
-const express = require("express");
-const mysql = require("mysql2");
-const cors = require("cors");
-require("dotenv").config();
+import express from "express";
+import bodyParser from "body-parser";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, ScanCommand, GetCommand, DeleteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// Connect to MySQL
-const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
-});
+const PORT = 5000;
 
-db.connect(err => {
-  if (err) {
-    console.error("DB connection failed:", err);
-    return;
-  }
-  console.log("Connected to MySQL");
-});
+// DynamoDB client
+const client = new DynamoDBClient({ region: "us-east-1" });
+const ddbDocClient = DynamoDBDocumentClient.from(client);
 
-// --- Songs Endpoints ---
+// ----------- Songs Routes ------------
 
 // Get all songs
-app.get("/api/songs", (req, res) => {
-  db.query("SELECT * FROM songs", (err, results) => {
-    if (err) return res.status(500).json(err);
-    res.json(results);
-  });
+app.get("/api/songs", async (req, res) => {
+  try {
+    const data = await ddbDocClient.send(new ScanCommand({ TableName: "Songs" }));
+    res.json(data.Items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Add a song
-app.post("/api/songs", (req, res) => {
-  const { title, artist, file_url } = req.body;
-  db.query(
-    "INSERT INTO songs (title, artist, file_url) VALUES (?, ?, ?)",
-    [title, artist, file_url],
-    (err, result) => {
-      if (err) return res.status(500).json(err);
-      res.json({ id: result.insertId, title, artist, file_url });
-    }
-  );
+// Get song by id
+app.get("/api/songs/:id", async (req, res) => {
+  try {
+    const data = await ddbDocClient.send(new GetCommand({ TableName: "Songs", Key: { id: req.params.id } }));
+    if (!data.Item) return res.status(404).json({ message: "Song not found" });
+    res.json(data.Item);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// --- Podcasts Endpoints ---
+// Add song
+app.post("/api/songs", async (req, res) => {
+  try {
+    await ddbDocClient.send(new PutCommand({ TableName: "Songs", Item: req.body }));
+    res.json({ message: "Song added" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------- Podcasts Routes ------------
 
 // Get all podcasts
-app.get("/api/podcasts", (req, res) => {
-  db.query("SELECT * FROM podcasts", (err, results) => {
-    if (err) return res.status(500).json(err);
-    res.json(results);
-  });
+app.get("/api/podcasts", async (req, res) => {
+  try {
+    const data = await ddbDocClient.send(new ScanCommand({ TableName: "Podcasts" }));
+    res.json(data.Items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Add a podcast
-app.post("/api/podcasts", (req, res) => {
-  const { title, embed_url } = req.body;
-  db.query(
-    "INSERT INTO podcasts (title, embed_url) VALUES (?, ?)",
-    [title, embed_url],
-    (err, result) => {
-      if (err) return res.status(500).json(err);
-      res.json({ id: result.insertId, title, embed_url });
-    }
-  );
+// Get podcast by id
+app.get("/api/podcasts/:id", async (req, res) => {
+  try {
+    const data = await ddbDocClient.send(new GetCommand({ TableName: "Podcasts", Key: { id: req.params.id } }));
+    if (!data.Item) return res.status(404).json({ message: "Podcast not found" });
+    res.json(data.Item);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-const PORT = process.env.PORT || 5000;
+// Add podcast
+app.post("/api/podcasts", async (req, res) => {
+  try {
+    await ddbDocClient.send(new PutCommand({ TableName: "Podcasts", Item: req.body }));
+    res.json({ message: "Podcast added" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Start server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
