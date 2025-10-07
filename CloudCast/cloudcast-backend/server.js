@@ -1,11 +1,19 @@
 // server.js
 import express from "express";
+import cors from "cors"; // <-- import cors
 import { v4 as uuidv4 } from "uuid";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, ScanCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 
 const app = express();
 app.use(express.json()); // built-in JSON parser
+
+// ----------- CORS Setup ------------
+app.use(cors({
+  origin: "*", // allow all origins, you can restrict to your frontend URL if needed
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 const PORT = 5000;
 
@@ -43,7 +51,7 @@ app.get("/api/songs/:id", async (req, res) => {
 // Add song
 app.post("/api/songs", async (req, res) => {
   try {
-    const item = { id: uuidv4(), ...req.body }; // generate unique id
+    const item = { id: uuidv4(), ...req.body };
     await ddbDocClient.send(new PutCommand({ TableName: "Songs", Item: item }));
     res.json({ message: "Song added", item });
   } catch (err) {
@@ -82,7 +90,7 @@ app.get("/api/podcasts/:id", async (req, res) => {
 // Add podcast
 app.post("/api/podcasts", async (req, res) => {
   try {
-    const item = { id: uuidv4(), ...req.body }; // generate unique id
+    const item = { id: uuidv4(), ...req.body };
     await ddbDocClient.send(new PutCommand({ TableName: "Podcasts", Item: item }));
     res.json({ message: "Podcast added", item });
   } catch (err) {
